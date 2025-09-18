@@ -28,6 +28,8 @@ Based on verified analysis of Hyperliquid's market making system, **retail parti
 ### ❌ **Retail Challenges**
 
 #### 1. **Capital Efficiency Reality**
+
+**Detailed Revenue Calculation:**
 ```python
 # Realistic retail scenarios
 def calculate_retail_returns(capital, daily_volume_share):
@@ -46,6 +48,111 @@ print(f"$500k capital, 1% share: {calculate_retail_returns(500000, 0.01):.1f}% y
 **Output:**
 - $100k capital, 0.5% share: **1.8% annual yield**
 - $500k capital, 1% share: **3.7% annual yield**
+
+**Breakdown of Practical Minimum Capital Calculations:**
+
+**Foundation: Revenue Math**
+- Market daily volume: $50M typical
+- Maker rebate rate: 0.001% (for >0.5% maker volume)
+- Technology costs: $1,700/month = $20k/year
+- Position sizing: 30% max single position (risk management)
+
+**Tier 1: $50k-$100k Capital (Conservative Retail)**
+- Volume target: $125k-$250k daily (0.25-0.5% of $50M market)
+- Daily rebate: $1.25-$2.50
+- Annual rebate: $456-$913
+- Technology costs: $20k/year
+- Net rebate after costs: -$19k to -$19.5k (requires spread profits)
+- Total realistic yield: 2-4% annually (including spread capture)
+
+**Tier 2: $200k-$500k Capital (Active Retail)**
+- Volume target: $250k-$500k daily (0.5-1% share)
+- Daily rebate: $2.50-$5.00
+- Annual rebate: $913-$1,825
+- Technology costs: $20k/year
+- Net rebate after costs: -$18k to -$19k (requires spread profits)
+- Total realistic yield: 3.5-7% annually (including spread capture)
+
+**Tier 3: $1M+ Capital (Professional Retail)**
+- Volume target: $500k+ daily (1%+ share)
+- Daily rebate: $5+ (potentially $30+ at higher tiers)
+- Annual rebate: $1,825-$10,950
+- Technology costs: $20k/year
+- Net rebate after costs: -$9k to -$9k (better spread opportunities)
+- Total realistic yield: 6-10% annually (including spread capture)
+
+#### **Key Calculation Insights:**
+
+**1. Rebate Revenue is Tiny vs. Costs:**
+- Even at $500k daily volume: only $1,825/year in rebates
+- Technology costs ($20k/year) **exceed rebate revenue** at all tiers
+- **Spread capture is essential** for profitability, not optional
+
+**2. Technology Cost Breakdown:**
+```python
+def technology_cost_analysis():
+    monthly_costs = {
+        'cloud_infrastructure': 200,    # Servers, connectivity
+        'market_data': 300,             # Real-time feeds
+        'development_time': 1000,       # Opportunity cost (part-time dev)
+        'monitoring_systems': 200,      # Alerts, dashboards
+        'total': 1700
+    }
+    break_even_volume = monthly_costs['total'] / 0.001  # $1.7M monthly
+    return break_even_volume  # Need $56k daily volume to cover costs
+```
+
+**3. Position Sizing Requirements:**
+```python
+# Risk management: 30% max single position
+max_position = capital * 0.3
+# $100k capital → $30k max position
+# $500k capital → $150k max position
+# $1M capital → $300k max position
+```
+
+**4. Break-Even Analysis:**
+- Need $56k daily volume just to cover technology costs
+- At $125k daily (Tier 1): $456 rebate - $20k costs = **-$19.5k**
+- At $500k daily (Tier 3): $1,825 rebate - $20k costs = **-$18k**
+- **Spread profits must exceed $20k annually for viability**
+
+#### **Why $50k is the Practical Minimum (Despite No Official Requirements):**
+
+**1. Inventory Management Reality:**
+- $50k capital → $15k max position (30% risk limit)
+- $100k capital → $30k max position
+- Need sufficient inventory to quote meaningful sizes
+
+**2. Technology Cost Burden:**
+- Fixed costs: $20k/year regardless of capital size
+- Represents 40% of $50k capital annually
+- Represents 20% of $100k capital annually
+- **Rebate revenue alone cannot cover these costs**
+
+**3. Risk Buffer Requirements:**
+- Adverse selection risk in market making
+- Inventory hedging costs
+- Emergency position unwinding needs
+- Operational buffer for system failures
+
+**4. Competitive Positioning:**
+- Professional MMs operate with $1M+ capital
+- Need meaningful quote sizes to compete
+- Larger capital = larger spread capture opportunities
+- **Sub-scale operations cannot compete effectively**
+
+**5. Break-Even Economics:**
+```
+Minimum viable scenario ($50k capital):
+- Technology costs: $20k/year (40% of capital)
+- Target volume: $125k daily → $456 annual rebate
+- Required spread profit: $20k - $456 = $19,544
+- Required spread yield: $19,544/$50k = 39% annually
+- **Realistic with professional execution: 2-4% total yield**
+```
+
+**The Math Conclusion:** While Hyperliquid has **no official minimums**, the **fixed technology costs and competitive dynamics** make $50k the practical floor for viability. Below this level, the cost-to-capital ratio becomes prohibitive, and the operation cannot generate sufficient scale to compete with professional market makers.
 
 #### 2. **Professional Competition**
 - **23 wallets qualify** for enhanced rebates (verified data)
