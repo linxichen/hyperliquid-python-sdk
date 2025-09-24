@@ -1,0 +1,458 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+
+\geometry{margin=1in, headheight=14pt}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Hyperliquid Inventory Management}
+\lhead{Market Making Strategies}
+\cfoot{\thepage}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+
+\title{\textbf{Comprehensive Inventory Management Strategies for Hyperliquid Market Making}}
+\author{Mathematical Framework and Practical Implementation}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+This document presents a comprehensive mathematical framework for inventory management in market making on Hyperliquid, focusing on spread capture while minimizing directional exposure. We derive optimal strategies for inventory control, spread management, and delta hedging within the specific context of Hyperliquid's fee structure and market microstructure.
+
+\section{Problem Formulation}
+
+Let $I_t$ represent the inventory position at time $t$, where positive values indicate long positions and negative values indicate short positions. Our objective is to maximize the expected profit from spread capture while minimizing inventory risk:
+
+\begin{equation}
+\max_{\delta_t^b, \delta_t^a} \mathbb{E}\left[\int_0^T (\text{spread}_t - \text{inventory\_cost}_t) dt\right]
+\end{equation}
+
+subject to inventory constraints and market impact considerations.
+
+\section{Dynamic Inventory Control}
+
+\subsection{Inventory-Adjusted Position Sizing}
+
+\subsubsection{Mathematical Derivation}
+
+Let $I_t$ be the current inventory, $I^*$ be the target inventory (typically 0), and $Q_0$ be the base quote size. We define the inventory ratio:
+
+\begin{equation}
+\rho_t = \frac{I_t}{I_{\max}}
+\end{equation}
+
+where $I_{\max}$ is the maximum allowable inventory deviation.
+
+The inventory-adjusted quote sizes are:
+\begin{align}
+Q_t^b &= Q_0 \cdot f^b(\rho_t) \\
+Q_t^a &= Q_0 \cdot f^a(\rho_t)
+\end{align}
+
+where $f^b$ and $f^a$ are inventory adjustment functions satisfying:
+\begin{itemize}
+    \item $f^b(\rho) \rightarrow 0$ as $\rho \rightarrow 1$ (reduce bid size when inventory too long)
+    \item $f^a(\rho) \rightarrow 0$ as $\rho \rightarrow -1$ (reduce ask size when inventory too short)
+    \item $f^b(0) = f^a(0) = 1$ (neutral inventory = base size)
+\end{itemize}
+
+\subsubsection{Optimal Adjustment Function}
+
+We derive the optimal adjustment function using exponential decay:
+
+\begin{equation}
+f^b(\rho) = \exp\left(-\alpha \cdot \max(0, \rho)^\beta\right)
+\end{equation}
+\begin{equation}
+f^a(\rho) = \exp\left(-\alpha \cdot \max(0, -\rho)^\beta\right)
+\end{equation}
+
+where $\alpha > 0$ controls sensitivity and $\beta \geq 1$ controls non-linearity.
+
+For practical implementation with $\alpha = 2.0$ and $\beta = 1.5$:
+\begin{align}
+Q_t^b &= Q_0 \cdot \exp\left(-2.0 \cdot \max(0, \rho_t)^{1.5}\right) \\
+Q_t^a &= Q_0 \cdot \exp\left(-2.0 \cdot \max(0, -\rho_t)^{1.5}\right)
+\end{align}
+
+\subsection{Asymmetric Spread Adjustment}
+
+\subsubsection{Theoretical Framework}
+
+Let $s_0$ be the base spread, $\delta_t^b$ be the bid spread, and $\delta_t^a$ be the ask spread. We define the inventory-adjusted spreads:
+
+\begin{align}
+\delta_t^b &= s_0 \cdot g^b(\rho_t) \\
+\delta_t^a &= s_0 \cdot g^a(\rho_t)
+\end{align}
+
+\subsubsection{Optimal Spread Functions}
+
+Using a linear inventory penalty with quadratic adjustment:
+\begin{align}
+g^b(\rho) &= 1 + \gamma \cdot \rho + \lambda \cdot \rho^2 \\
+g^a(\rho) &= 1 - \gamma \cdot \rho + \lambda \cdot \rho^2
+\end{align}
+
+where $\gamma > 0$ controls linear inventory penalty and $\lambda > 0$ controls quadratic risk aversion.
+
+The total spread becomes:
+\begin{equation}
+\text{Spread}_t = \delta_t^a + \delta_t^b = 2s_0 + 2\lambda s_0 \rho_t^2
+\end{equation}
+
+This ensures the spread widens symmetrically with inventory magnitude while maintaining the inventory bias through the linear term.
+
+\section{Spread Capture Optimization}
+
+\subsection{Tier-Based Spread Strategy}
+
+\subsubsection{Tier Classification and Optimal Spreads}
+
+Based on Hyperliquid's market structure, we classify assets into tiers:
+
+\textbf{Tier 1 (Major Assets):} BTC, ETH
+\begin{itemize}
+    \item Typical spread: $s \in [2, 5]$ bps
+    \item Market depth: $D \geq \$10$M
+    \item Volatility: $\sigma \approx 40-60\%$ annually
+\end{itemize}
+
+\textbf{Tier 2 (Established DeFi):} UNI, AAVE, LINK
+\begin{itemize}
+    \item Typical spread: $s \in [10, 30]$ bps
+    \item Market depth: $D \in [\$1\text{M}, \$10\text{M}]$
+    \item Volatility: $\sigma \approx 60-100\%$ annually
+\end{itemize}
+
+\textbf{Tier 3 (Emerging Tokens):}
+\begin{itemize}
+    \item Typical spread: $s \geq 30$ bps
+    \item Market depth: $D \leq \$1\text{M}$
+    \item Volatility: $\sigma \geq 100\%$ annually
+\end{itemize}
+
+\subsubsection{Optimal Spread Formula}
+
+For a given tier with base spread $s_{\text{tier}}$, we derive the optimal spread adjustment:
+
+\begin{equation}
+s_t^* = s_{\text{tier}} \cdot \left(1 + \theta \cdot \frac{\sigma_t}{\sigma_{\text{avg}}} + \phi \cdot \frac{1}{\text{Depth}_t}\right)
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $\theta$: Volatility sensitivity parameter (typically 0.5-1.0)
+    \item $\phi$: Depth sensitivity parameter (typically 0.1-0.3)
+    \item $\sigma_t$: Current realized volatility
+    \item $\sigma_{\text{avg}}$: Average historical volatility
+    \item $\text{Depth}_t$: Current order book depth in USD
+\end{itemize}
+
+\subsection{Volatility-Adjusted Spreads}
+
+\subsubsection{Stochastic Volatility Model}
+
+Let volatility follow a mean-reverting process:
+
+\begin{equation}
+d\sigma_t = \kappa (\bar{\sigma} - \sigma_t) dt + \eta \sqrt{\sigma_t} dW_t
+\end{equation}
+
+where $\kappa$ is mean reversion speed, $\bar{\sigma}$ is long-term volatility, and $\eta$ is volatility of volatility.
+
+\subsubsection{Spread-Volatility Relationship}
+
+The optimal spread scales with the square root of volatility:
+
+\begin{equation}
+s_t = s_0 \cdot \sqrt{\frac{\sigma_t}{\sigma_0}} \cdot \left(1 + \text{inventory\_penalty}_t\right)
+\end{equation}
+
+This relationship emerges from the fundamental trade-off between spread capture and adverse selection risk.
+
+\section{Delta Hedging Strategies}
+
+\subsection{Internal Hedging via Funding Rate Arbitrage}
+
+\subsubsection{Funding Rate Mechanics}
+
+The funding rate $f_t$ represents the cost of holding inventory:
+
+\begin{equation}
+\text{Funding Cost}_t = I_t \cdot f_t \cdot \Delta t
+\end{equation}
+
+where $\Delta t$ is the funding interval (typically 8 hours).
+
+\subsubsection{Optimal Inventory Direction}
+
+We derive the optimal inventory bias based on funding rates:
+
+\begin{equation}
+\rho_t^* = \text{sgn}(f_t) \cdot \min\left(\left|\frac{f_t}{f_{\max}}\right|, 1\right)
+\end{equation}
+
+This creates a natural hedge where inventory earns positive funding while maintaining market making obligations.
+
+\subsection{Cross-Asset Hedging}
+
+\subsubsection{Correlation-Based Hedging}
+
+For a portfolio of $n$ assets, let $\Sigma$ be the covariance matrix and $w$ be the inventory weights. The portfolio variance is:
+
+\begin{equation}
+\sigma_p^2 = w^T \Sigma w
+\end{equation}
+
+The optimal hedge portfolio $h$ minimizes:
+\begin{equation}
+\min_h \left(w + h\right)^T \Sigma \left(w + h\right)
+\end{equation}
+
+Subject to constraints on hedge availability and transaction costs.
+
+\subsubsection{Practical Hedge Ratio Calculation}
+
+For two correlated assets with inventories $I_1$ and $I_2$:
+
+\begin{equation}
+\beta_{12} = \frac{\text{Cov}(r_1, r_2)}{\text{Var}(r_2)}
+\end{equation}
+
+The hedge-adjusted exposure becomes:
+\begin{equation}
+\text{Net Exposure} = I_1 - \beta_{12} \cdot I_2 \cdot \frac{P_2}{P_1}
+\end{equation}
+
+where $P_1$ and $P_2$ are the respective prices.
+
+\subsection{External Delta Hedging}
+
+\subsubsection{Hedge Activation Threshold}
+
+Define the hedge activation function:
+
+\begin{equation}
+H(I_t) = \begin{cases}
+1 & \text{if } |I_t| > I_{\text{hedge}} \text{ and } \text{VaR}_t > \text{VaR}_{\max} \\
+0 & \text{otherwise}
+\end{cases}
+\end{equation}
+
+where $I_{\text{hedge}}$ is the inventory threshold and $\text{VaR}_t$ is the Value-at-Risk of the current position.
+
+\subsubsection{Optimal Hedge Size}
+
+When hedging is activated, the optimal hedge size is:
+\begin{equation}
+I_{\text{hedge}}^* = I_t \cdot \left(1 - \frac{\text{VaR}_{\max}}{\text{VaR}_t}\right) \cdot \eta
+\end{equation}
+
+where $\eta \in [0,1]$ is a hedging efficiency factor accounting for transaction costs and slippage.
+
+\section{Hyperliquid-Specific Optimizations}
+
+\subsection{Rebate System Integration}
+
+\subsubsection{Effective Spread Calculation}
+
+With Hyperliquid's maker rebate of $r = -0.001\%$, the effective spread becomes:
+
+\begin{equation}
+s_{\text{eff}} = s_{\text{quoted}} + 2r
+\end{equation}
+
+This allows for tighter effective spreads while maintaining profitability.
+
+\subsubsection{Volume Optimization}
+
+To qualify for rebates (0.5% maker volume share), the optimal daily volume $V^*$ satisfies:
+
+\begin{equation}
+\frac{V^*}{V_{\text{market}}} \geq 0.005
+\end{equation}
+
+The additional profit from rebates is:
+\begin{equation}
+\Delta \pi = V^* \cdot 2r \cdot \text{maker\_ratio}
+\end{equation}
+
+where $\text{maker\_ratio}$ is the proportion of volume that qualifies as maker.
+
+\subsection{HLP Vault Integration}
+
+\subsubsection{Capital Allocation Optimization}
+
+Let $\alpha$ be the fraction of capital allocated to HLP vault with return $r_{\text{HLP}}$, and $(1-\alpha)$ to active market making with return $r_{\text{MM}}$.
+
+The optimal allocation maximizes the risk-adjusted return:
+\begin{equation}\label{eq:allocation}
+\max_{\alpha} \left[\alpha r_{\text{HLP}} + (1-\alpha) r_{\text{MM}} - \frac{\lambda}{2} \alpha^2 \sigma_{\text{HLP}}^2 - \frac{\lambda}{2} (1-\alpha)^2 \sigma_{\text{MM}}^2\right]
+\end{equation}
+
+The first-order condition yields:
+\begin{equation}
+\alpha^* = \frac{r_{\text{HLP}} - r_{\text{MM}} + \lambda \sigma_{\text{MM}}^2}{\lambda (\sigma_{\text{HLP}}^2 + \sigma_{\text{MM}}^2)}
+\end{equation}
+
+With typical values $r_{\text{HLP}} = 20\%$, $r_{\text{MM}} = 7\%$, $\sigma_{\text{HLP}} = 15\%$, $\sigma_{\text{MM}} = 25\%$, and $\lambda = 2$:
+\begin{equation}
+\alpha^* \approx 0.3
+\end{equation}
+
+Suggesting optimal allocation of ~30% to HLP vault and ~70% to active market making.
+
+\subsection{Fee Structure Optimization}
+
+\subsubsection{Effective Fee Schedule}
+
+Hyperliquid's fee schedule with volume discounts:
+
+\begin{equation}
+f(V) = f_0 \cdot \left(1 - d(V)\right) \cdot \left(1 - s(S)\right)
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $f_0$: Base fee rate
+    \item $d(V)$: Volume discount function
+    \item $s(S)$: Staking discount based on HYPE stake $S$
+\end{itemize}
+
+The volume discount function follows:
+\begin{equation}
+d(V) = \min\left(0.8, \max\left(0, \frac{\log(V/V_0)}{\log(V_{\max}/V_0)} \cdot 0.8\right)\right)
+\end{equation}
+
+\section{Risk Management Framework}
+
+\subsection{Position Limits}
+
+\subsubsection{Mathematical Formulation}
+
+Define risk-adjusted position limits:
+\begin{equation}
+I_{\max} = \frac{\text{Capital}}{\text{VaR}_{\text{limit}}} \cdot \frac{1}{\sigma_{\text{asset}}} \cdot \sqrt{\frac{252}{T}}
+\end{equation}
+
+where $T$ is the holding period in days.
+
+\subsection{Value-at-Risk Calculations}
+
+\subsubsection{Parametric VaR}
+
+For normally distributed returns:
+\begin{equation}
+\text{VaR}_{\alpha} = I_t \cdot P_t \cdot \Phi^{-1}(\alpha) \cdot \sigma \cdot \sqrt{\Delta t}
+\end{equation}
+
+where $\Phi^{-1}(\alpha)$ is the inverse normal CDF.
+
+\subsubsection{Expected Shortfall}
+
+For tail risk measurement:
+\begin{equation}
+\text{ES}_{\alpha} = \frac{1}{1-\alpha} \int_{\alpha}^1 \text{VaR}_u du
+\end{equation}
+
+\subsection{Dynamic Risk Limits}
+
+\subsubsection{Adaptive Position Sizing}
+
+Risk limits adjust based on recent performance:
+\begin{equation}
+I_{\max, t} = I_{\max, 0} \cdot \left(1 + \beta \cdot \frac{\text{PnL}_{\text{recent}}}{\text{Capital}}\right)
+\end{equation}
+
+where $\beta \in [0,1]$ controls the sensitivity to recent performance.
+
+\section{Implementation Framework}
+
+\subsection{Real-Time Algorithm}
+
+The complete inventory management algorithm operates as follows:
+
+\begin{enumerate}
+    \item Calculate current inventory ratio $\rho_t = I_t/I_{\max}$
+    \item Update quote sizes: $Q_t^b = Q_0 \cdot f^b(\rho_t)$, $Q_t^a = Q_0 \cdot f^a(\rho_t)$
+    \item Adjust spreads: $\delta_t^b = s_0 \cdot g^b(\rho_t)$, $\delta_t^a = s_0 \cdot g^a(\rho_t)$
+    \item Apply volatility adjustment: $s_t = s_t^* \cdot \sqrt{\sigma_t/\sigma_0}$
+    \item Check hedge conditions: activate if $|I_t| > I_{\text{hedge}}$ and $\text{VaR}_t > \text{VaR}_{\max}$
+    \item Update risk metrics and adjust position limits
+\end{enumerate}
+
+\subsection{Parameter Calibration}
+
+\subsubsection{Optimal Parameter Selection}
+
+Parameters are calibrated using historical backtesting with the objective function:
+\begin{equation}
+\max_{\theta} \left[\text{Sharpe Ratio}(\theta) - \lambda \cdot \text{Max Drawdown}(\theta)\right]
+\end{equation}
+
+where $\theta$ represents the parameter vector and $\lambda$ is the risk aversion coefficient.
+
+\section{Performance Metrics}
+
+\subsection{Key Performance Indicators}
+
+\subsubsection{Inventory Efficiency Ratio}
+\begin{equation}
+\text{IER} = \frac{\text{Total PnL}}{\text{Average Inventory} \cdot \text{Volatility} \cdot \sqrt{T}}
+\end{equation}
+
+\subsubsection{Spread Capture Efficiency}
+\begin{equation}
+\text{SCE} = \frac{\text{Actual Spread Captured}}{\text{Quoted Spread}} \cdot \frac{\text{Maker Volume}}{\text{Total Volume}}
+\end{equation}
+
+\subsubsection{Risk-Adjusted Returns}
+\begin{equation}
+\text{RAR} = \frac{\text{Annualized Return}}{\text{Annualized Volatility}} \cdot \sqrt{252}
+\end{equation}
+
+\section{Conclusion}
+
+This framework provides a mathematically rigorous approach to inventory management for Hyperliquid market making. The key insights are:
+
+1. \textbf{Dynamic inventory control} through exponential adjustment functions optimally balances spread capture and inventory risk
+2. \textbf{Tier-based spread optimization} allows for systematic approach to asset selection
+3. \textbf{Internal hedging via funding rates} provides cost-effective delta management
+4. \textbf{Hyperliquid-specific features} like rebates and HLP vault integration enhance overall returns
+
+The mathematical derivations show that optimal inventory management requires continuous adjustment based on market conditions, inventory levels, and fee structure optimization. Success depends on proper parameter calibration and disciplined risk management rather than predictive market timing.
+
+\appendix
+\section{Mathematical Proofs}
+
+\subsection{Proof of Optimal Adjustment Function}
+
+We derive the optimal form of $f(\rho)$ by solving the Hamilton-Jacobi-Bellman equation for the inventory control problem. The value function $V(I,t)$ satisfies:
+
+\begin{equation}
+\frac{\partial V}{\partial t} + \max_{Q} \left\{\text{spread\_profit}(Q) - \text{inventory\_cost}(I) + \mathcal{L}[V]\right\} = 0
+\end{equation}
+
+where $\mathcal{L}$ is the infinitesimal generator of the inventory process. The solution yields the exponential form derived in Section 3.1.
+
+\subsection{Proof of Spread-Volatility Relationship}
+
+The square root relationship between spread and volatility emerges from the optimal dealer problem under adverse selection. The proof follows from Glosten-Milgrom type models where the spread compensates for information asymmetry that scales with volatility.
+
+\end{document}
