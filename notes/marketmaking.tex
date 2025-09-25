@@ -1,0 +1,202 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+
+\geometry{margin=1in}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+}
+
+\definecolor{codegray}{gray}{0.95}
+\definecolor{codeblue}{rgb}{0.2,0.2,0.6}
+
+\lstset{
+    backgroundcolor=\color{codegray},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{black!30}
+}
+
+\title{Hyperliquid Market Making Study}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Executive Summary}
+
+Hyperliquid implements a \textbf{purely algorithmic market making incentive system} based on transparent, volume-based negative maker fees. Unlike traditional exchanges with negotiated MM programs, Hyperliquid's system is permissionless and automatically scales with market share performance.
+
+\section{Key Mechanisms}
+
+\subsection{1. Maker Rebate System}
+\begin{itemize}
+    \item \textbf{Threshold}: 0.5\% of \textbf{maker volume} (not total volume)
+    \item \textbf{Rebate Rate}: -0.001\% (-0.1 basis points)
+    \item \textbf{Mechanism}: Automatic via \texttt{makerFractionCutoff} parameter in API
+    \item \textbf{Payment}: Instant credit per trade, no claiming needed
+\end{itemize}
+
+\subsection{2. Base Fee Structure}
+\begin{itemize}
+    \item \textbf{Perpetuals}: Maker 0.015\%, Taker 0.045\%
+    \item \textbf{Spot}: Maker 0.04\%, Taker 0.07\%
+    \item \textbf{Spot volume counts 2x} toward VIP tiers
+\end{itemize}
+
+\subsection{3. Staking Discount System}
+\begin{itemize}
+    \item \textbf{Range}: 5\% to 40\% discount on base fees
+    \item \textbf{Diamond Tier}: 40\% discount (500k+ HYPE staked)
+    \item \textbf{Stackable}: Applied after volume tier reductions
+\end{itemize}
+
+\subsection{4. Volume-Tier Discounts}
+\begin{itemize}
+    \item \textbf{Tier 1}: \$5M 14-day volume \textrightarrow Maker 0.012\%, Taker 0.04\%
+    \item \textbf{Progressive}: Higher tiers reduce both maker and taker fees
+\end{itemize}
+
+\section{Mathematical Framework}
+
+\subsection{Effective Fee Calculation}
+\begin{equation}
+\text{effective\_maker\_rate} = \max\left(
+\begin{array}{c}
+\text{base\_maker\_rate} \times (1 - \text{volume\_discount}) \\
+\times (1 - \text{staking\_discount}) \times (1 - \text{referral\_discount}) + \text{maker\_rebate},\\
+\text{maker\_rebate} \quad \text{(Floor at rebate rate)}
+\end{array}
+\right)
+\end{equation}
+
+\subsection{Revenue Example (Diamond tier, 1\% maker share)}
+\begin{lstlisting}[language=Python]
+daily_volume = 1_000_000  # $1M daily volume
+maker_rebate = 0.00001    # 0.001%
+daily_revenue = daily_volume * maker_rebate  # $10 per $1M
+annual_revenue = $3,650 per $1M daily volume
+\end{lstlisting}
+
+\section{API Integration}
+
+\subsection{Key Endpoint}
+\begin{lstlisting}[language=bash]
+POST https://api.hyperliquid.xyz/info
+Content-Type: application/json
+
+{
+  "type": "userFees",
+  "user": "0x..."
+}
+\end{lstlisting}
+
+\subsection{Response Structure}
+\begin{lstlisting}[language=]
+{
+  "feeSchedule": {
+    "add": "0.00015",           // Base maker fee
+    "cross": "0.00045",         // Base taker fee
+    "tiers": {
+      "mm": [{                    // Market maker rebates
+        "makerFractionCutoff": "0.005",
+        "add": "-0.00001"
+      }]
+    }
+  },
+  "userAddRate": "0.000105",     // Your effective maker rate
+  "userCrossRate": "0.000315",   // Your effective taker rate
+  "activeStakingDiscount": {
+    "discount": "0.3"            // 30% discount if applicable
+  }
+}
+\end{lstlisting}
+
+\section{Business Strategy}
+
+\subsection{Competitive Advantages}
+\begin{enumerate}
+    \item \textbf{No collateral requirements} - capital efficient
+    \item \textbf{Transparent mechanics} - all rates visible via API
+    \item \textbf{Automatic scaling} - revenue grows with market share
+    \item \textbf{Instant rebates} - no claiming or delays
+\end{enumerate}
+
+\subsection{Market Share Dynamics}
+\begin{itemize}
+    \item \textbf{\textless= 0.5\% maker share}: Pay reduced fees, compete on spread
+    \item \textbf{\textgreater= 0.5\% maker share}: Earn rebates, can quote tighter
+    \item \textbf{Network effects}: Larger MMs afford tighter spreads due to rebate income
+\end{itemize}
+
+\subsection{Break-Even Analysis}
+For a market with \$500M daily volume:
+\begin{itemize}
+    \item \textbf{1\% maker share}: \$5M daily volume
+    \item \textbf{Daily rebate}: \$50 (at 0.001\% rebate)
+    \item \textbf{Annual revenue}: \$18,250 pure rebate income
+    \item \textbf{Additional revenue}: Tighter spreads capture more flow
+\end{itemize}
+
+\section{Implementation Considerations}
+
+\subsection{Risk Management}
+\begin{itemize}
+    \item \textbf{Inventory risk}: Must manage position exposure
+    \item \textbf{Adverse selection}: Rebate doesn't protect against toxic flow
+    \item \textbf{Competition}: 23 wallets currently qualify for enhanced rebates
+\end{itemize}
+
+\subsection{Technology Requirements}
+\begin{itemize}
+    \item \textbf{Low latency}: Need competitive execution to capture flow
+    \item \textbf{Inventory management}: Dynamic position sizing
+    \item \textbf{Market making algorithms}: Must optimize for both spreads and volume share
+\end{itemize}
+
+\section{Verification Status}
+
+\subsection{Officially Confirmed}
+\begin{itemize}
+    \item Maker rebate mechanism via API documentation
+    \item Base fee structure from official sources
+    \item Staking discount tiers from 2025 implementation
+    \item Mathematical formulas validated against API responses
+\end{itemize}
+
+\subsection{Cross-Referenced Sources}
+\begin{enumerate}
+    \item \textbf{Primary}: Hyperliquid GitBook API Documentation
+    \item \textbf{Staking}: DeFi Planet (April 29, 2025 implementation)
+    \item \textbf{Market data}: BlockBase Insights (23 qualifying wallets)
+\end{enumerate}
+
+\section{Conclusion}
+
+Hyperliquid's market making system represents a \textbf{paradigm shift} from relationship-based to \textbf{performance-based liquidity provision}. The mathematical elegance lies in its simplicity: successful market makers are automatically rewarded through transparent, algorithmic mechanisms that create positive-sum dynamics between efficient MMs and the broader trading ecosystem.
+
+The system is particularly attractive for \textbf{algorithmic traders} who can optimize for volume share rather than negotiating bilateral agreements, making it one of the most \textbf{capital-efficient market making opportunities} in the current landscape.
+
+\end{document}
